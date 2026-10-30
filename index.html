@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thử Thách 12 Môn Học Lớp 9</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #1d2671, #c33764);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .game-container {
+            background: rgba(0, 0, 0, 0.75);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 650px;
+            text-align: center;
+            border: 2px solid #ffcc00;
+        }
+        h1 {
+            color: #ffcc00;
+            margin-bottom: 10px;
+            font-size: 24px;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 10px;
+        }
+        .question-box {
+            font-size: 20px;
+            margin-bottom: 25px;
+            min-height: 80px;
+            line-height: 1.4;
+            color: #00ffff;
+            font-weight: bold;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .btn-option {
+            background: #2b5876;
+            background: linear-gradient(to right, #4e4376, #2b5876);
+            color: white;
+            border: 2px solid #fff;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+        .btn-option:hover:not(:disabled) {
+            background: linear-gradient(to right, #7f70b2, #4e4376);
+            border-color: #ffcc00;
+            transform: scale(1.03);
+        }
+        .btn-option.correct {
+            background: #28a745 !important;
+            border-color: #fff !important;
+            animation: pulse 0.5s;
+        }
+        .btn-option.wrong {
+            background: #dc3545 !important;
+            border-color: #fff !important;
+        }
+        .btn-action {
+            background: #ffcc00;
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4);
+        }
+        .btn-action:hover {
+            background: #ffdb4d;
+            transform: translateY(-2px);
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1.03); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>🔥 ĐỈNH CAO LỚP 9 - 12 MÔN HỌC 🔥</h1>
+    
+    <div id="quiz-screen">
+        <div class="stats">
+            <span id="subject-badge">Môn: Toán</span>
+            <span id="timer">⏱️ 15s</span>
+            <span id="score">⭐ Điểm: 0</span>
+        </div>
+        
+        <div class="question-box" id="question-text">Đang tải câu hỏi...</div>
+        
+        <div class="options-grid">
+            <button class="btn-option" onclick="checkAnswer(0)" id="opt0"></button>
+            <button class="btn-option" onclick="checkAnswer(1)" id="opt1"></button>
+            <button class="btn-option" onclick="checkAnswer(2)" id="opt2"></button>
+            <button class="btn-option" onclick="checkAnswer(3)" id="opt3"></button>
+        </div>
+    </div>
+
+    <div id="end-screen" style="display: none;">
+        <h2 id="end-title" style="color: #ffcc00; font-size: 28px;">Hoàn thành xuất sắc!</h2>
+        <p id="final-score" style="font-size: 20px; margin: 20px 0;"></p>
+        <button class="btn-action" onclick="restartGame()">Chơi Lại Ngay</button>
+    </div>
+</div>
+
+<script>
+    // --- HỆ THỐNG ÂM THANH KÍCH THÍCH (Dùng Web Audio API tích hợp sẵn) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'correct') { // Âm thanh chiến thắng reo vui
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, now); // C5
+            osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+            osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+            osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+            gainNode.gain.setValueAtTime(0.2, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+            osc.start(now);
+            osc.stop(now + 0.6);
+        } else if (type === 'wrong') { // Âm thanh báo lỗi buồn cười/cảnh báo
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.setValueAtTime(100, now + 0.15);
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        } else if (type === 'click') { // Tiếng bấm nút
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, now);
+            gainNode.gain.setValueAtTime(0.1, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.start(now);
+            osc.stop(now + 0.05);
+        }
+    }
+
+    // --- DỮ LIỆU CÂU HỎI 12 MÔN LỚP 9 ---
+    const questions = [
+        {
+            subject: "Toán học",
+            q: "Nghiệm của phương trình x² - 5x + 6 = 0 là gì?",
+            options: ["A. x = 1 và x = 6", "B. x = 2 và x = 3", "C. x = -2 và x = -3", "D. x = -1 và x = -6"],
+            answer: 1
+        },
+        {
+            subject: "Vật lý",
+            q: "Theo định luật Ôm, cường độ dòng điện (I) tỉ lệ thuận với đại lượng nào?",
+            options: ["A. Điện trở (R)", "B. Hiệu điện thế (U)", "C. Tiết diện dây dẫn", "D. Chiều dài dây dẫn"],
+            answer: 1
+        },
+        {
+            subject: "Hóa học",
+            q: "Kim loại nào tác dụng với HCl giải phóng khí H₂, nhưng KHÔNG tác dụng với H₂SO₄ đặc nguội?",
+            options: ["A. Đồng (Cu)", "B. Sắt (Fe)", "C. Bạc (Ag)", "D. Vàng (Au)"],
+            answer: 1
+        },
+        {
+            subject: "Sinh học",
+            q: "Theo Men-đen, phép lai giữa cơ thể dị hợp (Aa x Aa) với trội hoàn toàn cho tỉ lệ kiểu hình là:",
+            options: ["A. 1 : 1", "B. 3 : 1", "C. 1 : 2 : 1", "D. 9 : 3 : 3 : 1"],
+            answer: 1
+        },
+        {
+            subject: "Ngữ văn",
+            q: "Trong đoạn trích 'Chị em Thúy Vân' (Truyện Kiều), câu thơ tả vẻ đẹp của Thúy Vân trước là?",
+            options: ["A. Làn thu thủy nét xuân sơn", "B. Khuôn trăng đầy đặn nét ngài nở nang", "C. Hoa ghen thua thắm liễu hờn kém xanh", "D. Hoa cười ngọc thốt đoan trang"],
+            answer: 1
+        },
+        {
+            subject: "Lịch sử",
+            q: "Sự kiện nào đánh dấu hoàn toàn miền Nam được giải phóng, thống nhất đất nước?",
+            options: ["A. Hiệp định Giơ-ne-vơ 1954", "B. Hiệp định Pa-ri 1973", "C. Chiến dịch Tây Nguyên", "D. Chiến dịch Hồ Chí Minh lịch sử (30/04/1975)"],
+            answer: 3
+        },
+        {
+            subject: "Địa lý",
+            q: "Vùng nào ở nước ta dẫn đầu cả nước về diện tích và sản lượng cây công nghiệp lâu năm?",
+            options: ["A. Trung du miền núi Bắc Bộ", "B. Bắc Trung Bộ", "C. Tây Nguyên", "D. Đồng bằng sông Cửu Long"],
+            answer: 2
+        },
+        {
+            subject: "Giáo dục công dân",
+            q: "Theo pháp luật nước ta, công dân đủ bao nhiêu tuổi được quyền đi bầu cử đại biểu Quốc hội?",
+            options: ["A. Đủ 16 tuổi", "B. Đủ 18 tuổi", "C. Đủ 20 tuổi", "D. Đủ 21 tuổi"],
+            answer: 1
+        },
+        {
+            subject: "Tin học",
+            q: "Đâu là một địa chỉ trang web (URL) hợp lệ?",
+            options: ["A. https://www.google.com", "B. nguyenvanA@gmail.com", "C. 192.168.1.1", "D. C:\\Documents\\Baithi.docx"],
+            answer: 0
+        },
+        {
+            subject: "Công nghệ",
+            q: "Dây pha (dây nóng) trong mạng điện sinh hoạt xoay chiều thường có màu gì theo quy chuẩn?",
+            options: ["A. Màu xanh dương", "B. Màu đỏ hoặc vàng", "C. Màu vàng sọc xanh lục", "D. Màu trắng"],
+            answer: 1
+        },
+        {
+            subject: "Tiếng Anh",
+            q: "Chọn đáp án đúng: 'If I were you, I _______ that computer.'",
+            options: ["A. will buy", "B. would buy", "C. bought", "D. would have bought"],
+            answer: 1
+        },
+        {
+            subject: "Âm nhạc / Mỹ thuật",
+            q: "Nhịp 3/4 có đặc điểm gì?",
+            options: ["A. Có 3 phách trong 1 ô nhịp, giá trị mỗi phách bằng một nốt đen", "B. Có 4 phách trong một ô nhịp", "C. Có 2 phách trong một ô nhịp", "D. Nhịp ngoại lệ không có phách mạnh"],
+            answer: 0
+        }
+    ];
+
+    let currentIdx = 0;
+    let score = 0;
+    let timeLeft = 15;
+    let timerInterval;
+
+    const subjectBadge = document.getElementById("subject-badge");
+    const questionText = document.getElementById("question-text");
+    const scoreDisplay = document.getElementById("score");
+    const timerDisplay = document.getElementById("timer");
+    const quizScreen = document.getElementById("quiz-screen");
+    const endScreen = document.getElementById("end-screen");
+    const finalScore = document.getElementById("final-score");
+
+    function startGame() {
+        currentIdx = 0;
+        score = 0;
+        quizScreen.style.display = "block";
+        endScreen.style.display = "none";
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        clearInterval(timerInterval);
+        timeLeft = 15;
+        timerDisplay.innerText = `⏱️ ${timeLeft}s`;
+
+        const q = questions[currentIdx];
+        subjectBadge.innerText = `Môn: ${q.subject} (${currentIdx + 1}/12)`;
+        questionText.innerText = q.q;
+
+        for (let i = 0; i < 4; i++) {
+            const btn = document.getElementById(`opt${i}`);
+            btn.innerText = q.options[i];
+            btn.disabled = false;
+            btn.className = "btn-option";
+        }
+
+        // Bắt đầu đếm ngược thời gian
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timerDisplay.innerText = `⏱️ ${timeLeft}s`;
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                handleTimeOut();
+            }
+        }, 1000);
+    }
+
+    function checkAnswer(selectedIdx) {
+        playSound('click');
+        clearInterval(timerInterval);
+        const q = questions[currentIdx];
+        const correctIdx = q.answer;
+
+        for (let i = 0; i < 4; i++) {
+            document.getElementById(`opt${i}`).disabled = true;
+        }
+
+        if (selectedIdx === correctIdx) {
+            document.getElementById(`opt${selectedIdx}`).classList.add("correct");
+            playSound('correct');
+            score += 10;
+            scoreDisplay.innerText = `⭐ Điểm: ${score}`;
+        } else {
+            document.getElementById(`opt${selectedIdx}`).classList.add("wrong");
+            document.getElementById(`opt${correctIdx}`).classList.add("correct");
+            playSound('wrong');
+        }
+
+        setTimeout(nextQuestion, 1500);
+    }
+
+    function handleTimeOut() {
+        playSound('wrong');
+        const correctIdx = questions[currentIdx].answer;
+        document.getElementById(`opt${correctIdx}`).classList.add("correct");
+        for (let i = 0; i < 4; i++) {
+            document.getElementById(`opt${i}`).disabled = true;
+        }
+        setTimeout(nextQuestion, 1500);
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if (currentIdx < questions.length) {
+            loadQuestion();
+        } else {
+            showEndScreen();
+        }
+    }
+
+    function showEndScreen() {
+        quizScreen.style.display = "none";
+        endScreen.style.display = "block";
+        finalScore.innerText = `Bạn đạt tổng số điểm: ${score} / 120 điểm! 🎉`;
+    }
+
+    function restartGame() {
+        startGame();
+    }
+
+    // Chạy game lần đầu
+    startGame();
+</script>
+
+</body>
+</html>
